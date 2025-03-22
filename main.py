@@ -7,7 +7,7 @@ import csv
 app = Flask(__name__)
 
 class Note:
-    note_letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+    note_letters = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#']
     octaves = range(9)
 
     def __init__(self, note, octave, frequency):
@@ -42,11 +42,7 @@ class Note:
         if value not in Note.octaves:
             raise ValueError(f"Invalid octave: {value}")
         self._octave = value
-    
-    @classmethod
-    def generate_notes(cls):
-        for note in cls.note_letters:
-            ...
+            
     
     @classmethod
     def get_notes(cls):
