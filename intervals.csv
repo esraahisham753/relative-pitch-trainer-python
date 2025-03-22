@@ -1,0 +1,14 @@
+Interval,Semitones,Level
+Unison,0,1
+Minor Second,1,3
+Major Second,2,3
+Minor Third,3,2
+Major Third,4,2
+Perfect Fourth,5,1
+Tritone,6,5
+Perfect Fifth,7,1
+Minor Sixth,8,4
+Major Sixth,9,4
+Minor Seventh,10,4
+Major Seventh,11,4
+Octave,12,1
