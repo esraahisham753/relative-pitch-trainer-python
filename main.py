@@ -1,4 +1,5 @@
 from flask import Flask, render_template
+import numpy as np
 import pygame
 import time
 import math
@@ -7,7 +8,7 @@ import random
 
 app = Flask(__name__)
 
-pygame.mixer.init(frequency=44100, size=-16, channels=1)
+pygame.mixer.init(frequency=44100, size=-16, channels=2)
 
 class Note:
     note_letters = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#']
@@ -55,9 +56,21 @@ class Note:
         n_samples = int(round(duration * sample_rate))
         buf = pygame.sndarray.make_sound(
             pygame.surfarray.array3d(
-                pygame.surface((n_samples, 1))
+                pygame.Surface((n_samples, 2))
             )
         )
+        sample_array = buf.get_raw()
+        max_sample = 2 ** (16 - 1) - 1
+
+        for i in range(n_samples):
+            sample = max_sample * volume * math.sin(2 * math.pi * self.frequency * i / sample_rate)
+            sample_array[4*i] = int(sample) & 0xff
+            sample_array[4*i + 1] = (int(sample) >> 8) & 0xff
+            sample_array[4*i + 2] = int(sample) & 0xff
+            sample_array[4*i + 3] = (int(sample) >> 8) & 0xff
+        
+        buf.play()
+        time.sleep(duration)
 
 class Interval:
     interval_names = ['Unison', 'Minor Second', 'Major Second', 'Minor Third', 'Major Third', 'Perfect Fourth', 'Tritone', 'Perfect Fifth', 'Minor Sixth', 'Major Sixth', 'Minor Seventh', 'Major Seventh', 'Octave']
@@ -284,8 +297,11 @@ def main():
     notes = Note.get_notes()
     intervals = Interval.get_intervals()
 
-    game = Relative_Pitch_Trainer(10, 1, 'both', 0, intervals, notes)
-    print(game.generate_question())
+    print(notes[0])
+    notes[0].play()
+
+    #game = Relative_Pitch_Trainer(10, 1, 'both', 0, intervals, notes)
+    #print(game.generate_question())
     return render_template('index.html')
 
 if __name__ == '__main__':
