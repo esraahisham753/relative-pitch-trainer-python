@@ -7,6 +7,8 @@ import random
 
 app = Flask(__name__)
 
+pygame.mixer.init(frequency=44100, size=-16, channels=1)
+
 class Note:
     note_letters = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#']
 
@@ -47,6 +49,15 @@ class Note:
                 notes.append(note)
             
             return notes
+    
+    def play(self, duration=1, volume=0.5):
+        sample_rate = 44100
+        n_samples = int(round(duration * sample_rate))
+        buf = pygame.sndarray.make_sound(
+            pygame.surfarray.array3d(
+                pygame.surface((n_samples, 1))
+            )
+        )
 
 class Interval:
     interval_names = ['Unison', 'Minor Second', 'Major Second', 'Minor Third', 'Major Third', 'Perfect Fourth', 'Tritone', 'Perfect Fifth', 'Minor Sixth', 'Major Sixth', 'Minor Seventh', 'Major Seventh', 'Octave']
@@ -133,13 +144,54 @@ class Interval:
     def get_level_intervals(cls, intervals, level):
         return [inter for inter in intervals if inter['level'] <= level]
     
+
+class Question:
+    def __init__(self, choices, correct_choice, interval):
+        self._choices = choices
+        self._correct_choice = correct_choice
+        self._interval = interval
     
+    def __str__(self):
+        return f"{self.choices} - {self.correct_choice} - {self.interval}"
+    
+    @property
+    def choices(self):
+        return self._choices
+    
+    @choices.setter
+    def choices(self, value):
+        self._choices = value
+    
+    @property
+    def correct_choice(self):
+        return self._correct_choice
+    
+    @correct_choice.setter
+    def correct_choice(self, value):
+        if value not in self.choices:
+            raise ValueError("Correct choice must be one of the choices")
+        self._correct_choice = value
+    
+    @property
+    def interval(self):
+        return self._interval
+    
+    @interval.setter
+    def interval(self, value):
+        self._interval = value
+    
+    def check_answer(self, choice):
+        return choice == self.correct_choice
+   
+
 class Relative_Pitch_Trainer:
-    def __init__(self, num_questions, level, direction, cur_question=0):
+    def __init__(self, num_questions, level, direction, cur_question=0, intervals=[], notes=[]):
         self._num_questions = num_questions
         self._level = level
         self._direction = direction
         self._cur_question = cur_question
+        self._intervals = intervals
+        self._notes = notes
     
     @property
     def num_questions(self):
@@ -170,13 +222,70 @@ class Relative_Pitch_Trainer:
         if value not in ['asc', 'desc', 'both']:
             raise ValueError("Direction must be either 'asc' or 'desc' or 'both'")
         self._direction = value
+    
+    @property
+    def cur_question(self):
+        return self._cur_question
+    
+    @cur_question.setter
+    def cur_question(self, value):
+        if value < 0 or value > self.num_questions:
+            raise ValueError("Current question must be between 0 and the number of questions")
+        self._cur_question = value
+    
+    @property
+    def intervals(self):
+        return self._intervals
+    
+    @intervals.setter
+    def intervals(self, value):
+        self._intervals = value
+    
+    @property
+    def notes(self):
+        return self._notes
+    
+    @notes.setter
+    def notes(self, value):
+        self._notes = value
+    
+    def choose_direction(self):
+        if self.direction == 'both':
+            return random.choice(['asc', 'desc'])
+        return self.direction
+    
+    def get_choices(self):
+        choices = []
+
+        for interval in self.intervals:
+            if interval['level'] <= self.level:
+                choices.append(interval['interval'])
+        
+        return choices
+    
+    def choose_interval(self):
+        sub_intervals = Interval.get_level_intervals(self.intervals, self.level)
+        return random.choice(sub_intervals)['interval']
+    
+    def generate_question(self):
+        if self.cur_question > self.num_questions:
+            return None
+        
+        if self.choose_direction() == 'asc':
+            inter = Interval.generate_asc_interval(self.notes, self.choose_interval(), self.intervals)
+        inter = Interval.generate_desc_interval(self.notes, self.choose_interval(), self.intervals)
+
+        return Question(self.get_choices(), inter.name, inter)
+   
+
 
 @app.route('/')
 def main():
     notes = Note.get_notes()
     intervals = Interval.get_intervals()
 
-    print(Interval.get_level_intervals(intervals, 2))
+    game = Relative_Pitch_Trainer(10, 1, 'both', 0, intervals, notes)
+    print(game.generate_question())
     return render_template('index.html')
 
 if __name__ == '__main__':
