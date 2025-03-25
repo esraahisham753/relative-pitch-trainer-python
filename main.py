@@ -1,24 +1,21 @@
 from flask import Flask, render_template
 import numpy as np
-import pygame
+import pygame.midi
 import time
-import math
 import csv
 import random
 
 app = Flask(__name__)
 
-pygame.mixer.init(frequency=44100, size=-16, channels=2)
-
 class Note:
     note_letters = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#']
 
-    def __init__(self, note, frequency):
+    def __init__(self, note, midi):
         self._note = note
-        self._frequency = frequency
+        self._midi = midi
     
     def __str__(self):
-        return f"{self.note} ({self.frequency} Hz)"
+        return f"{self.note} ({self._midi})"
     
     @property
     def note(self):
@@ -31,12 +28,12 @@ class Note:
         self._note = value
     
     @property
-    def frequency(self):
-        return self._frequency
+    def midi(self):
+        return self._midi
     
-    @frequency.setter
-    def frequency(self, value):
-        self._frequency = value
+    @midi.setter
+    def midi(self, value):
+        self._midi = value
             
     
     @classmethod
@@ -46,31 +43,21 @@ class Note:
             notes = []
 
             for row in reader:
-                note = cls(row['Note'] + row['Octave'], row['Frequency'])
+                note = cls(row['Note'] + row['Octave'], int(row['MIDI']))
                 notes.append(note)
             
             return notes
     
-    def play(self, duration=1, volume=0.5):
-        sample_rate = 44100
-        n_samples = int(round(duration * sample_rate))
-        buf = pygame.sndarray.make_sound(
-            pygame.surfarray.array3d(
-                pygame.Surface((n_samples, 2))
-            )
-        )
-        sample_array = buf.get_raw()
-        max_sample = 2 ** (16 - 1) - 1
-
-        for i in range(n_samples):
-            sample = max_sample * volume * math.sin(2 * math.pi * self.frequency * i / sample_rate)
-            sample_array[4*i] = int(sample) & 0xff
-            sample_array[4*i + 1] = (int(sample) >> 8) & 0xff
-            sample_array[4*i + 2] = int(sample) & 0xff
-            sample_array[4*i + 3] = (int(sample) >> 8) & 0xff
-        
-        buf.play()
+    def play(self, duration=1):
+        pygame.init()
+        pygame.midi.init()
+        player = pygame.midi.Output(0)
+        player.set_instrument(0)
+        player.note_on(self.midi, 127)
         time.sleep(duration)
+        player.note_off(self.midi, 127)
+        del player
+        pygame.midi.quit()
 
 class Interval:
     interval_names = ['Unison', 'Minor Second', 'Major Second', 'Minor Third', 'Major Third', 'Perfect Fourth', 'Tritone', 'Perfect Fifth', 'Minor Sixth', 'Major Sixth', 'Minor Seventh', 'Major Seventh', 'Octave']
@@ -195,6 +182,10 @@ class Question:
     
     def check_answer(self, choice):
         return choice == self.correct_choice
+    
+    def play_interval(self):
+        self.interval.first_note.play()
+        self.interval.second_note.play()
    
 
 class Relative_Pitch_Trainer:
@@ -289,6 +280,12 @@ class Relative_Pitch_Trainer:
         inter = Interval.generate_desc_interval(self.notes, self.choose_interval(), self.intervals)
 
         return Question(self.get_choices(), inter.name, inter)
+    
+    def train(self):   
+        question = self.generate_question()
+        print(question)
+        question.play_interval()
+        self.cur_question += 1
    
 
 
@@ -297,11 +294,8 @@ def main():
     notes = Note.get_notes()
     intervals = Interval.get_intervals()
 
-    print(notes[0])
-    notes[0].play()
-
-    #game = Relative_Pitch_Trainer(10, 1, 'both', 0, intervals, notes)
-    #print(game.generate_question())
+    game = Relative_Pitch_Trainer(10, 1, 'both', 0, intervals, notes)
+    game.train()
     return render_template('index.html')
 
 if __name__ == '__main__':
