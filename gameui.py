@@ -6,7 +6,6 @@ class GameUI:
         pygame.init()
 
         # Screen dimensions
-
         self.width = 1200
         self.hight = 700
         self.screen = pygame.display.set_mode((self.width, self.hight))
@@ -23,8 +22,12 @@ class GameUI:
         # Game Data
         self.notes = Note.get_notes()
         self.intervals = Interval.get_intervals()
-        self.game = Relative_Pitch_Trainer(10, 1, 'both', 0, self.intervals, self.notes)
+        self.level = 1
+        self.direction = 'asc'
         self.score = 0
+
+        # UI state
+        self.state = ' menu'
 
 
 
@@ -51,6 +54,31 @@ class GameUI:
         
 
         return  []
+    
+    def draw_menu_screen(self):
+        self.screen.fill(self.background)
+
+        #title
+        title = self.font_large.render("Es Relative Pitch Trainer Setup", True, self.color)
+        self.screen.blit(title, (self.width / 2 - title.get_width() / 2, 50))
+
+        # Selected level 
+        level_text = self.font_medium.render("Select Level (1-5): ", True, self.color)
+        self.screen.blit(level_text, (self.width / 2 - level_text.get_width() / 2, 200))
+        selected_level = self.font_medium.render(f"{self.level}", True, self.color)
+        self.screen.blit(selected_level, (self.width / 2 - level_text.get_width() / 2 + 200, 200))
+
+        # Level controls
+        decrease = self.draw_button(self.width / 2 - 150, 250, 50, 50, '<', self.level > 1)
+        increase = self.draw_button(self.width / 2 + 100, 250, 50, 50, '>', self.level < 5)
+
+        # Direction
+        asc_btn = self.draw_button(self.width / 2 - 200, 400, 100, 50, 'Ascending', self.direction == 'asc')
+        desc_btn = self.draw_button(self.width / 2 - 50, 400, 100, 50, 'Descending', self.direction == 'desc')
+        both_btn = self.draw_button(self.width / 2 + 100, 400, 100, 50, 'Both', self.direction == 'both')
+
+        # Start button
+        start_btn = self.draw_button(self.width / 2 - 100, 500, 200, 50, 'Start')
 
     def run(self):
         running = True
