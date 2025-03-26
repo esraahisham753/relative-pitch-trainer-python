@@ -14,6 +14,7 @@ class GameUI:
         self.color = (0, 0, 0)
         self.choices = (63, 125, 88)
         self.blue = (0, 100, 255)
+        self.transparent = (0, 0, 0, 0)
 
         # fonts
         self.font_large = pygame.font.Font(None, 48)
@@ -27,14 +28,13 @@ class GameUI:
         self.score = 0
 
         # UI state
-        self.state = ' menu'
+        self.state = 'menu'
 
 
 
-    def draw_button(self, x, y, width, height, text, active=False):
-        color = self.choices if active else self.blue
-        pygame.draw.rect(self.screen, color, (x, y, width, height))
-        text_surface = self.font_medium.render(text, True, self.choices)
+    def draw_button(self, x, y, width, height, text, active=False, bg_color=(255, 255, 255)):
+        pygame.draw.rect(self.screen, bg_color, (x, y, width, height))
+        text_surface = self.font_medium.render(text, True, self.color)
         text_rect = text_surface.get_rect()
         text_rect.center = (x + width / 2, y + height / 2)
         self.screen.blit(text_surface, text_rect)
@@ -64,21 +64,21 @@ class GameUI:
 
         # Selected level 
         level_text = self.font_medium.render("Select Level (1-5): ", True, self.color)
-        self.screen.blit(level_text, (self.width / 2 - level_text.get_width() / 2, 200))
+        self.screen.blit(level_text, (self.width / 2 - level_text.get_width() / 2, 100))
         selected_level = self.font_medium.render(f"{self.level}", True, self.color)
-        self.screen.blit(selected_level, (self.width / 2 - level_text.get_width() / 2 + 200, 200))
+        self.screen.blit(selected_level, (self.width / 2 - level_text.get_width() / 2 + 75, 150))
 
         # Level controls
-        decrease = self.draw_button(self.width / 2 - 150, 250, 50, 50, '<', self.level > 1)
-        increase = self.draw_button(self.width / 2 + 100, 250, 50, 50, '>', self.level < 5)
+        decrease = self.draw_button(self.width / 2 - 150, 130, 50, 50, '<', self.level > 1, self.transparent)
+        increase = self.draw_button(self.width / 2 + 100, 130, 50, 50, '>', self.level < 5, self.transparent)
 
         # Direction
-        asc_btn = self.draw_button(self.width / 2 - 200, 400, 100, 50, 'Ascending', self.direction == 'asc')
-        desc_btn = self.draw_button(self.width / 2 - 50, 400, 100, 50, 'Descending', self.direction == 'desc')
-        both_btn = self.draw_button(self.width / 2 + 100, 400, 100, 50, 'Both', self.direction == 'both')
+        asc_btn = self.draw_button(self.width / 2 - 200, 400, 100, 50, 'Ascending', self.direction == 'asc', self.choices)
+        desc_btn = self.draw_button(self.width / 2 - 50, 400, 100, 50, 'Descending', self.direction == 'desc', self.choices)
+        both_btn = self.draw_button(self.width / 2 + 100, 400, 100, 50, 'Both', self.direction == 'both', self.choices)
 
         # Start button
-        start_btn = self.draw_button(self.width / 2 - 100, 500, 200, 50, 'Start')
+        start_btn = self.draw_button(self.width / 2 - 100, 500, 200, 50, 'Start', self.choices)
 
     def run(self):
         running = True
@@ -86,8 +86,12 @@ class GameUI:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-            self.screen.fill(self.background)
-            self.draw_game_screen()
+                
+            if self.state == 'menu':
+                self.draw_menu_screen()
+            else:
+                self.draw_game_screen()
+
             pygame.display.flip()
         pygame.quit()
 
