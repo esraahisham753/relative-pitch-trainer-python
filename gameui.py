@@ -26,9 +26,13 @@ class GameUI:
         self.level = 1
         self.direction = 'asc'
         self.score = 0
+        self.game = None
 
         # UI state
         self.state = 'menu'
+
+        # UI components
+        self.menu = {}
 
 
 
@@ -54,7 +58,10 @@ class GameUI:
         score = self.font_medium.render(f"Score: {self.score}", True, self.color)
         self.screen.blit(score, (20, 20))
 
-        
+        # render questions
+        question = self.game.generate_question()
+        for choice in question.choices:
+            choice_surface = self.font_medium.render()
 
         return  []
     
@@ -76,12 +83,21 @@ class GameUI:
         increase = self.draw_button(self.width / 2 + 100, 135, 20, 50, '>', self.level < 5, self.transparent)
 
         # Direction
-        asc_btn = self.draw_button(self.width / 2 - 200, 300, 20, 50, 'Ascending', self.direction == 'asc', self.choices)
-        desc_btn = self.draw_button(self.width / 2 - 50, 300, 20, 50, 'Descending', self.direction == 'desc', self.choices)
-        both_btn = self.draw_button(self.width / 2 + 115, 300, 20, 50, 'Both', self.direction == 'both', self.choices)
+        asc_bg = self.blue if self.direction == 'asc' else self.choices
+        asc_btn = self.draw_button(self.width / 2 - 200, 300, 20, 50, 'Ascending', self.direction == 'asc', asc_bg)
+        desc_bg = self.blue if self.direction == 'desc' else self.choices
+        desc_btn = self.draw_button(self.width / 2 - 50, 300, 20, 50, 'Descending', self.direction == 'desc', desc_bg)
+        both_bg = self.blue if self.direction == 'both' else self.choices
+        both_btn = self.draw_button(self.width / 2 + 115, 300, 20, 50, 'Both', self.direction == 'both', both_bg)
 
         # Start button
-        start_btn = self.draw_button(self.width / 2 - 100, 350, 20, 50, 'Start', False, self.choices)
+        start_btn = self.draw_button(self.width / 2 - 50, 400, 20, 50, 'Start', False, self.choices)
+
+        # assign components to menu dict
+        self.menu['level'] = (decrease, increase)
+        self.menu['direction'] = (asc_btn, desc_btn, both_btn)
+        self.menu['start'] = start_btn
+
 
     def run(self):
         running = True
@@ -89,6 +105,23 @@ class GameUI:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if self.state == 'menu':
+                        if self.menu['level'][0].collidepoint(mouse_pos):
+                            self.level = max(1, self.level - 1)
+                        elif self.menu['level'][1].collidepoint(mouse_pos):
+                            self.level = min(5, self.level + 1)
+                        elif self.menu['direction'][0].collidepoint(mouse_pos):
+                            self.direction = 'asc'
+                        elif self.menu['direction'][1].collidepoint(mouse_pos):
+                            self.direction = 'desc'
+                        elif self.menu['direction'][2].collidepoint(mouse_pos):
+                            self.direction = 'both'
+                        elif self.menu['start'].collidepoint(mouse_pos):
+                            self.state = 'game'
+                            self.game = Relative_Pitch_Trainer(10, self.level, self.direction, 0, self.intervals, self.notes)
+
                 
             if self.state == 'menu':
                 self.draw_menu_screen()
