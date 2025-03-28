@@ -27,6 +27,7 @@ class GameUI:
         self.direction = 'asc'
         self.score = 0
         self.game = None
+        self.active_choice = ''
 
         # UI state
         self.state = 'menu'
@@ -60,8 +61,8 @@ class GameUI:
 
         # render questions
         question = self.game.generate_question()
-        for choice in question.choices:
-            choice_surface = self.font_medium.render()
+        for i, choice in enumerate(question.choices):
+            self.draw_button(50 + (i * 250), 200, 50, 30, choice, self.active_choice == choice, self.choices)
 
         return  []
     
