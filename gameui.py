@@ -28,12 +28,14 @@ class GameUI:
         self.score = 0
         self.game = None
         self.active_choice = ''
+        self.active_qustion = {}
 
         # UI state
         self.state = 'menu'
 
         # UI components
         self.menu = {}
+        self.choices_btns = []
 
 
 
@@ -60,9 +62,10 @@ class GameUI:
         self.screen.blit(score, (20, 20))
 
         # render questions
-        question = self.game.generate_question()
-        for i, choice in enumerate(question.choices):
-            self.draw_button(50 + (i * 250), 200, 50, 30, choice, self.active_choice == choice, self.choices)
+        for i, choice in enumerate(self.active_question.choices):
+            bg_color = self.blue if self.active_choice == choice else self.choices
+            choice_btn = self.draw_button(50 + (i * 250), 200, 50, 30, choice, self.active_choice == choice, bg_color)
+            self.choices_btns.append(choice_btn)
 
         return  []
     
@@ -99,6 +102,16 @@ class GameUI:
         self.menu['direction'] = (asc_btn, desc_btn, both_btn)
         self.menu['start'] = start_btn
 
+    def draw_result_screen(self):
+        self.screen.fill(self.background)
+
+        # title
+        text = 'Correct!' if self.active_question.check_answer(self.active_choice) else 'Incorrect!'
+        title = self.font_large.render(text, True, self.color)
+        current_interval = f"{self.active_question.interval.first_note.note} to {self.active_question.interval.second_note.note} is {self.active_question.interval.name}"
+        current_interval_text = self.font_medium.render(current_interval, True, self.color)
+        self.screen.blit(title, (self.width / 2 - title.get_width() / 2, 50))
+        self.screen.blit(current_interval_text, (self.width / 2 - current_interval_text.get_width() / 2, 150))
 
     def run(self):
         running = True
@@ -122,10 +135,23 @@ class GameUI:
                         elif self.menu['start'].collidepoint(mouse_pos):
                             self.state = 'game'
                             self.game = Relative_Pitch_Trainer(10, self.level, self.direction, 0, self.intervals, self.notes)
-
+                            self.active_question = self.game.generate_question()
+                            self.active_question.play_interval()
+                    elif self.state == 'game':
+                        for i, choice in enumerate(self.choices_btns):
+                            if choice.collidepoint(mouse_pos):
+                                self.active_choice = self.active_question.choices[i]
+                                if self.active_question.check_answer(self.active_question.choices[i]):
+                                    self.score += 1
+                                else:
+                                    self.score -= 1
+                                self.state = 'result'
+                                break
                 
             if self.state == 'menu':
                 self.draw_menu_screen()
+            elif self.state == 'result':
+                self.draw_result_screen()
             else:
                 self.draw_game_screen()
 

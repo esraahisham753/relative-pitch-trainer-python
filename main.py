@@ -181,6 +181,7 @@ class Question:
         self._interval = value
     
     def check_answer(self, choice):
+        #print(f"Checking answer: {choice} == {self.correct_choice}")
         return choice == self.correct_choice
     
     def play_interval(self):
