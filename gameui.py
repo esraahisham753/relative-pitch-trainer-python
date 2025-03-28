@@ -81,7 +81,7 @@ class GameUI:
         both_btn = self.draw_button(self.width / 2 + 115, 300, 20, 50, 'Both', self.direction == 'both', self.choices)
 
         # Start button
-        start_btn = self.draw_button(self.width / 2 - 100, 500, 200, 50, 'Start', self.choices)
+        start_btn = self.draw_button(self.width / 2 - 100, 350, 20, 50, 'Start', False, self.choices)
 
     def run(self):
         running = True
