@@ -44,10 +44,10 @@ class GameUI:
     def draw_button(self, x, y, width, height, text, active=False, bg_color=(255, 255, 255, 0)):
         text_surface = self.font_medium.render(text, True, self.color)
         text_rect = text_surface.get_rect()
-        btn_width = text_surface.get_width() + width
+        btn_width = width
         text_rect.center = (btn_width / 2, height / 2)
         button_surface = pygame.Surface((btn_width, height), pygame.SRCALPHA)
-        pygame.draw.rect(button_surface, bg_color, (0, 0, btn_width, height))
+        pygame.draw.rect(button_surface, bg_color, (0, 0, btn_width, height), border_radius=5)
         button_surface.blit(text_surface, text_rect)
         self.screen.blit(button_surface, (x, y))
         return pygame.Rect(x, y, btn_width, height)
@@ -66,7 +66,7 @@ class GameUI:
         # render questions
         for i, choice in enumerate(self.active_question.choices):
             bg_color = self.blue if self.active_choice == choice else self.choices
-            choice_btn = self.draw_button(50 + (i * 250), 200, 50, 30, choice, self.active_choice == choice, bg_color)
+            choice_btn = self.draw_button(self.width / 2 - 150, 200 + (i * 70), 300, 50, choice, self.active_choice == choice, bg_color)
             self.choices_btns.append(choice_btn)
 
         return  []
@@ -90,14 +90,14 @@ class GameUI:
 
         # Direction
         asc_bg = self.blue if self.direction == 'asc' else self.choices
-        asc_btn = self.draw_button(self.width / 2 - 200, 300, 20, 50, 'Ascending', self.direction == 'asc', asc_bg)
+        asc_btn = self.draw_button(self.width / 2 - 200, 300, 140, 50, 'Ascending', self.direction == 'asc', asc_bg)
         desc_bg = self.blue if self.direction == 'desc' else self.choices
-        desc_btn = self.draw_button(self.width / 2 - 50, 300, 20, 50, 'Descending', self.direction == 'desc', desc_bg)
+        desc_btn = self.draw_button(self.width / 2 - 50, 300, 140, 50, 'Descending', self.direction == 'desc', desc_bg)
         both_bg = self.blue if self.direction == 'both' else self.choices
-        both_btn = self.draw_button(self.width / 2 + 115, 300, 20, 50, 'Both', self.direction == 'both', both_bg)
+        both_btn = self.draw_button(self.width / 2 + 115, 300, 140, 50, 'Both', self.direction == 'both', both_bg)
 
         # Start button
-        start_btn = self.draw_button(self.width / 2 - 50, 400, 20, 50, 'Start', False, self.choices)
+        start_btn = self.draw_button(self.width / 2 - 50, 400, 140, 50, 'Start', False, self.choices)
 
         # assign components to menu dict
         self.menu['level'] = (decrease, increase)
@@ -115,12 +115,12 @@ class GameUI:
             current_interval_text = self.font_medium.render(current_interval, True, self.color)
             self.screen.blit(title, (self.width / 2 - title.get_width() / 2, 50))
             self.screen.blit(current_interval_text, (self.width / 2 - current_interval_text.get_width() / 2, 150))
-            next_btn = self.draw_button(self.width / 2 - 50, 300, 20, 50, 'Next', False, self.choices)
+            next_btn = self.draw_button(self.width / 2 - 150, 300, 300, 50, 'Next', False, self.choices)
             self.menu['next'] = next_btn
         else:
             final_score = self.font_large.render(f"Final Score: {self.score}/{self.game.num_questions}", True, self.color)
             self.screen.blit(final_score, (self.width / 2 - final_score.get_width() / 2, 50))
-            self.menu['play_again'] = self.draw_button(self.width / 2 - 50, 300, 20, 50, 'Play Again', False, self.choices)
+            self.menu['play_again'] = self.draw_button(self.width / 2 - 150, 300, 300, 50, 'Play Again', False, self.choices)
 
     def run(self):
         running = True
