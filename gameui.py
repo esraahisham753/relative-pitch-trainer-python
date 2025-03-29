@@ -8,12 +8,15 @@ class GameUI:
         # Screen dimensions
         self.width = 1200
         self.hight = 700
-        self.screen = pygame.display.set_mode((self.width, self.hight))
+        self.screen = pygame.display.set_mode((self.width, self.hight), pygame.RESIZABLE)
         pygame.display.set_caption("Es Relative Pitch Trainer")
-        self.background = (255, 221, 171, 255)
-        self.color = (0, 0, 0)
-        self.choices = (63, 125, 88, 255)
-        self.blue = (0, 100, 255, 255)
+        info = pygame.display.Info()
+        self.width = info.current_w
+        self.hight = info.current_h
+        self.background = (237, 242, 247, 255)
+        self.color = (45, 55, 72)
+        self.choices = (66, 153, 255, 255)
+        self.blue = (49, 130, 206, 255)
         self.transparent = (0, 0, 0, 0)
 
         # fonts
@@ -126,6 +129,20 @@ class GameUI:
         running = True
         while running:
             for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_f:
+                        if self.screen.get_flags() & pygame.RESIZABLE:
+                            self.screen = pygame.display.set_mode((1200, 700))
+                            self.width = 1200
+                            self.hight = 700
+                        else:
+                            info = pygame.display.Info()
+                            self.width = info.current_w
+                            self.hight = info.current_h - 40
+                            self.screen = pygame.display.set_mode((self.width, self.hight), pygame.RESIZABLE)
+                if event.type == pygame.VIDEORESIZE:
+                    self.width, self.hight = event.w, event.h
+                    self.screen = pygame.display.set_mode((self.width, self.hight), pygame.RESIZABLE)
                 if event.type == pygame.QUIT:
                     running = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -155,25 +172,27 @@ class GameUI:
                                 self.state = 'result'
                                 break
                     elif self.state == 'result':
-                        if self.menu['next'].collidepoint(mouse_pos):
-                            self.active_question = self.game.generate_question()
-                            self.cur_question += 1
-                            self.active_choice = ''
-                            self.state = 'game'
-                            self.first_render = True
-                            self.play = True
-                            self.choices_btns = []
-                        elif self.menu['play_again'].collidepoint(mouse_pos):
-                            self.state = 'menu'
-                            self.score = 0
-                            self.cur_question = 1
-                            self.active_choice = ''
-                            self.choices_btns = []
-                            self.game = None
-                            self.active_question = {}
-                            self.play = False
-                            self.first_render = True
-                            self.menu = {}
+                        if self.cur_question < self.game.num_questions:
+                            if self.menu['next'].collidepoint(mouse_pos):
+                                self.active_question = self.game.generate_question()
+                                self.cur_question += 1
+                                self.active_choice = ''
+                                self.state = 'game'
+                                self.first_render = True
+                                self.play = True
+                                self.choices_btns = []
+                        else:
+                            if self.menu['play_again'].collidepoint(mouse_pos):
+                                self.state = 'menu'
+                                self.score = 0
+                                self.cur_question = 1
+                                self.active_choice = ''
+                                self.choices_btns = []
+                                self.game = None
+                                self.active_question = {}
+                                self.play = False
+                                self.first_render = True
+                                self.menu = {}
                 
             if self.state == 'menu':
                 self.draw_menu_screen()
