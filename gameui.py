@@ -35,7 +35,6 @@ class GameUI:
         self.play = False
         self.first_render = True
         self.cur_question = 1
-        self.num_questions = 10
         # UI components
         self.menu = {}
         self.choices_btns = []
@@ -109,7 +108,7 @@ class GameUI:
         self.screen.fill(self.background)
 
         # title
-        if self.cur_question <= self.num_questions:
+        if self.cur_question < self.game.num_questions:
             text = 'Correct!' if self.active_question.check_answer(self.active_choice) else 'Incorrect!'
             title = self.font_large.render(text, True, self.color)
             current_interval = f"{self.active_question.interval.first_note.note} to {self.active_question.interval.second_note.note} is {self.active_question.interval.name}"
@@ -119,8 +118,9 @@ class GameUI:
             next_btn = self.draw_button(self.width / 2 - 50, 300, 20, 50, 'Next', False, self.choices)
             self.menu['next'] = next_btn
         else:
-            final_score = self.font_large.render(f"Final Score: {self.score}/{self.num_questions}", True, self.color)
+            final_score = self.font_large.render(f"Final Score: {self.score}/{self.game.num_questions}", True, self.color)
             self.screen.blit(final_score, (self.width / 2 - final_score.get_width() / 2, 50))
+            self.menu['play_again'] = self.draw_button(self.width / 2 - 50, 300, 20, 50, 'Play Again', False, self.choices)
 
     def run(self):
         running = True
@@ -143,7 +143,7 @@ class GameUI:
                             self.direction = 'both'
                         elif self.menu['start'].collidepoint(mouse_pos):
                             self.state = 'game'
-                            self.game = Relative_Pitch_Trainer(10, self.level, self.direction, 0, self.intervals, self.notes)
+                            self.game = Relative_Pitch_Trainer(3, self.level, self.direction, 0, self.intervals, self.notes)
                             self.active_question = self.game.generate_question()
                             self.play = True
                     elif self.state == 'game':
@@ -163,6 +163,17 @@ class GameUI:
                             self.first_render = True
                             self.play = True
                             self.choices_btns = []
+                        elif self.menu['play_again'].collidepoint(mouse_pos):
+                            self.state = 'menu'
+                            self.score = 0
+                            self.cur_question = 1
+                            self.active_choice = ''
+                            self.choices_btns = []
+                            self.game = None
+                            self.active_question = {}
+                            self.play = False
+                            self.first_render = True
+                            self.menu = {}
                 
             if self.state == 'menu':
                 self.draw_menu_screen()
