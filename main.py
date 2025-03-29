@@ -279,6 +279,7 @@ class Relative_Pitch_Trainer:
         if self.choose_direction() == 'asc':
             inter = Interval.generate_asc_interval(self.notes, self.choose_interval(), self.intervals)
         inter = Interval.generate_desc_interval(self.notes, self.choose_interval(), self.intervals)
+        
 
         return Question(self.get_choices(), inter.name, inter)
     

@@ -32,7 +32,10 @@ class GameUI:
 
         # UI state
         self.state = 'menu'
-
+        self.play = False
+        self.first_render = True
+        self.cur_question = 1
+        self.num_questions = 10
         # UI components
         self.menu = {}
         self.choices_btns = []
@@ -106,12 +109,18 @@ class GameUI:
         self.screen.fill(self.background)
 
         # title
-        text = 'Correct!' if self.active_question.check_answer(self.active_choice) else 'Incorrect!'
-        title = self.font_large.render(text, True, self.color)
-        current_interval = f"{self.active_question.interval.first_note.note} to {self.active_question.interval.second_note.note} is {self.active_question.interval.name}"
-        current_interval_text = self.font_medium.render(current_interval, True, self.color)
-        self.screen.blit(title, (self.width / 2 - title.get_width() / 2, 50))
-        self.screen.blit(current_interval_text, (self.width / 2 - current_interval_text.get_width() / 2, 150))
+        if self.cur_question <= self.num_questions:
+            text = 'Correct!' if self.active_question.check_answer(self.active_choice) else 'Incorrect!'
+            title = self.font_large.render(text, True, self.color)
+            current_interval = f"{self.active_question.interval.first_note.note} to {self.active_question.interval.second_note.note} is {self.active_question.interval.name}"
+            current_interval_text = self.font_medium.render(current_interval, True, self.color)
+            self.screen.blit(title, (self.width / 2 - title.get_width() / 2, 50))
+            self.screen.blit(current_interval_text, (self.width / 2 - current_interval_text.get_width() / 2, 150))
+            next_btn = self.draw_button(self.width / 2 - 50, 300, 20, 50, 'Next', False, self.choices)
+            self.menu['next'] = next_btn
+        else:
+            final_score = self.font_large.render(f"Final Score: {self.score}/{self.num_questions}", True, self.color)
+            self.screen.blit(final_score, (self.width / 2 - final_score.get_width() / 2, 50))
 
     def run(self):
         running = True
@@ -136,17 +145,24 @@ class GameUI:
                             self.state = 'game'
                             self.game = Relative_Pitch_Trainer(10, self.level, self.direction, 0, self.intervals, self.notes)
                             self.active_question = self.game.generate_question()
-                            self.active_question.play_interval()
+                            self.play = True
                     elif self.state == 'game':
                         for i, choice in enumerate(self.choices_btns):
                             if choice.collidepoint(mouse_pos):
                                 self.active_choice = self.active_question.choices[i]
                                 if self.active_question.check_answer(self.active_question.choices[i]):
                                     self.score += 1
-                                else:
-                                    self.score -= 1
                                 self.state = 'result'
                                 break
+                    elif self.state == 'result':
+                        if self.menu['next'].collidepoint(mouse_pos):
+                            self.active_question = self.game.generate_question()
+                            self.cur_question += 1
+                            self.active_choice = ''
+                            self.state = 'game'
+                            self.first_render = True
+                            self.play = True
+                            self.choices_btns = []
                 
             if self.state == 'menu':
                 self.draw_menu_screen()
@@ -154,6 +170,10 @@ class GameUI:
                 self.draw_result_screen()
             else:
                 self.draw_game_screen()
+                if self.play and not self.first_render:
+                    self.active_question.play_interval()
+                    self.play = False
+                self.first_render = False
 
             pygame.display.flip()
         pygame.quit()
