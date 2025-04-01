@@ -150,6 +150,8 @@ class GameUI:
             current_interval_text = self.font_medium.render(current_interval, True, self.color)
             self.screen.blit(title, (self.width / 2 - title.get_width() / 2, 50))
             self.screen.blit(current_interval_text, (self.width / 2 - current_interval_text.get_width() / 2, 150))
+            question_track = self.font_medium.render(f"Question {self.cur_question}/{self.game.num_questions}", True, self.color)
+            self.screen.blit(question_track, (self.width / 2 - question_track.get_width() / 2, 250))
             next_btn = self.draw_button(self.width / 2 - 150, 300, 300, 50, 'Next', False, self.choices)
             self.menu['next'] = next_btn
         else:
@@ -190,9 +192,12 @@ class GameUI:
                             self.direction = 'desc'
                         elif self.menu['direction'][2].collidepoint(mouse_pos):
                             self.direction = 'both'
+                        elif self.menu['input_box'].collidepoint(mouse_pos):
+                            self.input_active = True
+                            self.input_text = ''
                         elif self.menu['start'].collidepoint(mouse_pos):
                             self.state = 'game'
-                            self.game = Relative_Pitch_Trainer(3, self.level, self.direction, 0, self.intervals, self.notes)
+                            self.game = Relative_Pitch_Trainer(self.num_questions, self.level, self.direction, 0, self.intervals, self.notes)
                             self.active_question = self.game.generate_question()
                             self.play = True
                     elif self.state == 'game':
@@ -226,6 +231,23 @@ class GameUI:
                                 self.first_render = True
                                 self.menu = {}
                 
+                if event.type == pygame.KEYDOWN and self.input_active:
+                    if event.key == pygame.K_RETURN:
+                        self.input_active = False
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.input_text = self.input_text[:-1]
+                    else:
+                        if event.unicode.isnumeric() and len(self.input_text) < 4:
+                            self.input_text += event.unicode
+                    
+                    try:
+                        num = int(self.input_text)
+                        self.num_questions = max(1, min(num, 100))
+                        self.input_text = str(self.num_questions)
+                    except ValueError:
+                        self.input_text = '10'
+                        self.num_questions = 10
+
             if self.state == 'menu':
                 self.draw_menu_screen()
             elif self.state == 'result':
