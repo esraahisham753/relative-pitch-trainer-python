@@ -8,6 +8,13 @@ class GameUI:
         # Screen dimensions
         self.width = 1200
         self.hight = 700
+        
+        try:
+            self.background_image = pygame.image.load('background.jpg')
+        except pygame.error:
+            self.background_image = None
+        
+        self.overlay_color = (237, 242, 247, 200)
         self.screen = pygame.display.set_mode((self.width, self.hight), pygame.RESIZABLE)
         pygame.display.set_caption("Es Relative Pitch Trainer")
         info = pygame.display.Info()
@@ -30,6 +37,7 @@ class GameUI:
         self.direction = 'asc'
         self.score = 0
         self.game = None
+        self.num_questions = 10
         self.active_choice = ''
         self.active_qustion = {}
 
@@ -38,11 +46,24 @@ class GameUI:
         self.play = False
         self.first_render = True
         self.cur_question = 1
+        self.input_active = False
+        self.input_text = '10'
         # UI components
         self.menu = {}
         self.choices_btns = []
 
 
+    def draw_background(self):
+        if self.background_image:
+            scaled_bg = pygame.transform.scale(self.background_image, (self.width, self.hight))
+            self.screen.blit(scaled_bg, (0, 0))
+        else:
+            self.screen.fill(self.background)
+        
+        # Create a semi-transparent overlay
+        overlay = pygame.Surface((self.width, self.hight), pygame.SRCALPHA)
+        overlay.fill(self.overlay_color)
+        self.screen.blit(overlay, (0, 0))
 
     def draw_button(self, x, y, width, height, text, active=False, bg_color=(255, 255, 255, 0)):
         text_surface = self.font_medium.render(text, True, self.color)
@@ -56,7 +77,7 @@ class GameUI:
         return pygame.Rect(x, y, btn_width, height)
     
     def draw_game_screen(self):
-        self.screen.fill(self.background)
+        self.draw_background()
 
         # title
         title = self.font_large.render("Es Relative Pitch Trainer", True, self.color)
@@ -75,7 +96,7 @@ class GameUI:
         return  []
     
     def draw_menu_screen(self):
-        self.screen.fill(self.background)
+        self.draw_background()
 
         #title
         title = self.font_large.render("Es Relative Pitch Trainer Setup", True, self.color)
@@ -99,8 +120,19 @@ class GameUI:
         both_bg = self.blue if self.direction == 'both' else self.choices
         both_btn = self.draw_button(self.width / 2 + 115, 300, 140, 50, 'Both', self.direction == 'both', both_bg)
 
+        # num questions
+        num_questions_text = self.font_medium.render("Number of Questions: ", True, self.color)
+        self.screen.blit(num_questions_text, (self.width / 2 - num_questions_text.get_width() / 2, 400))
+        input_box = pygame.Rect(self.width / 2 + 150, 390, 100, 50)
+        input_color = self.blue if self.input_active else self.choices
+        pygame.draw.rect(self.screen, input_color, input_box, border_radius=5)
+        input_surface = self.font_medium.render(self.input_text, True, self.color)
+        input_rect = input_surface.get_rect(center=input_box.center)
+        self.screen.blit(input_surface, input_rect)
+        self.menu['input_box'] = input_box
+
         # Start button
-        start_btn = self.draw_button(self.width / 2 - 50, 400, 140, 50, 'Start', False, self.choices)
+        start_btn = self.draw_button(self.width / 2 - 50, 500, 140, 50, 'Start', False, self.choices)
 
         # assign components to menu dict
         self.menu['level'] = (decrease, increase)
@@ -108,7 +140,7 @@ class GameUI:
         self.menu['start'] = start_btn
 
     def draw_result_screen(self):
-        self.screen.fill(self.background)
+        self.draw_background()
 
         # title
         if self.cur_question < self.game.num_questions:
