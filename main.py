@@ -1,304 +1,267 @@
-from flask import Flask, render_template
-import numpy as np
-import pygame.midi
-import time
-import csv
-import random
+import pygame
+from music import Note, Interval, Relative_Pitch_Trainer
 
-app = Flask(__name__)
-
-class Note:
-    note_letters = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#']
-
-    def __init__(self, note, midi):
-        self._note = note
-        self._midi = midi
-    
-    def __str__(self):
-        return f"{self.note} ({self._midi})"
-    
-    @property
-    def note(self):
-        return self._note
-    
-    @note.setter
-    def note(self, value):
-        if value[:-1] not in Note.note_letters:
-            raise ValueError(f"Invalid note: {value}")
-        self._note = value
-    
-    @property
-    def midi(self):
-        return self._midi
-    
-    @midi.setter
-    def midi(self, value):
-        self._midi = value
-            
-    
-    @classmethod
-    def get_notes(cls):
-        with open('musical-notes.csv', 'r') as f:
-            reader = csv.DictReader(f)
-            notes = []
-
-            for row in reader:
-                note = cls(row['Note'] + row['Octave'], int(row['MIDI']))
-                notes.append(note)
-            
-            return notes
-    
-    def play(self, duration=1):
+class GameUI:
+    def __init__(self):
         pygame.init()
-        pygame.midi.init()
-        player = pygame.midi.Output(0)
-        player.set_instrument(0)
-        player.note_on(self.midi, 127)
-        time.sleep(duration)
-        player.note_off(self.midi, 127)
-        del player
-        pygame.midi.quit()
 
-class Interval:
-    interval_names = ['Unison', 'Minor Second', 'Major Second', 'Minor Third', 'Major Third', 'Perfect Fourth', 'Tritone', 'Perfect Fifth', 'Minor Sixth', 'Major Sixth', 'Minor Seventh', 'Major Seventh', 'Octave']
-
-    def __init__(self, first_note, second_note, name, semitones):
-        self._first_note = first_note
-        self._second_note = second_note
-        self._name = name
-        self._semitones = semitones
-    
-    def __str__(self):
-        return f"{self.first_note} - {self.second_note} - {self.name} - {self.semitones} semitones"
-    
-    @property
-    def first_note(self):
-        return self._first_note
-    
-    @first_note.setter
-    def first_note(self, value):
-        self._first_note = value
-
-    @property
-    def second_note(self):
-        return self._second_note
-    
-    @second_note.setter
-    def second_note(self, value):
-        self._second_note = value
-    
-    @property
-    def name(self):
-        return self._name
-    
-    @name.setter
-    def name(self, value):
-        if value not in Interval.interval_names:
-            raise ValueError(f"Invalid interval name: {value}")
-        self._name = value
-    
-    @property
-    def semitones(self):
-        return self._semitones
-    
-    @semitones.setter
-    def semitones(self, value):
-        if value < 0 or value > 12:
-            raise ValueError("Semitones must be between 0 and 12")
-        self._semitones = value
-    
-    @classmethod
-    def get_intervals(cls):
-        intervals = []
-
-        with open('intervals.csv', 'r') as f:
-            reader = csv.DictReader(f)
-            
-            for row in reader:
-                intervals.append({'interval': row['Interval'], 'semitones': int(row['Semitones']), 'level': int(row['Level'])})
-        return intervals
-    
-    @classmethod
-    def generate_asc_interval(cls, notes, interval, intervals):
-       semitones = cls.map_inter_to_semitones(intervals, interval)
-       first_note_ind = random.randint(0, len(notes) - semitones - 1)
-       second_note_ind = first_note_ind + semitones
-
-       return cls(notes[first_note_ind], notes[second_note_ind], interval, semitones)
-    
-    @classmethod
-    def generate_desc_interval(cls, notes, interval, intervals):
-       semitones = cls.map_inter_to_semitones(intervals, interval)
-       first_note_ind = random.randint(semitones, len(notes) - 1)
-       second_note_ind = first_note_ind - semitones
-
-       return cls(notes[first_note_ind], notes[second_note_ind], interval, semitones)
-    
-    @classmethod
-    def map_inter_to_semitones(cls, intervals, interval):
-        for inter in intervals:
-            if inter['interval'] == interval:
-                return inter['semitones']
-    
-    @classmethod
-    def get_level_intervals(cls, intervals, level):
-        return [inter for inter in intervals if inter['level'] <= level]
-    
-
-class Question:
-    def __init__(self, choices, correct_choice, interval):
-        self._choices = choices
-        self._correct_choice = correct_choice
-        self._interval = interval
-    
-    def __str__(self):
-        return f"{self.choices} - {self.correct_choice} - {self.interval}"
-    
-    @property
-    def choices(self):
-        return self._choices
-    
-    @choices.setter
-    def choices(self, value):
-        self._choices = value
-    
-    @property
-    def correct_choice(self):
-        return self._correct_choice
-    
-    @correct_choice.setter
-    def correct_choice(self, value):
-        if value not in self.choices:
-            raise ValueError("Correct choice must be one of the choices")
-        self._correct_choice = value
-    
-    @property
-    def interval(self):
-        return self._interval
-    
-    @interval.setter
-    def interval(self, value):
-        self._interval = value
-    
-    def check_answer(self, choice):
-        #print(f"Checking answer: {choice} == {self.correct_choice}")
-        return choice == self.correct_choice
-    
-    def play_interval(self):
-        self.interval.first_note.play()
-        self.interval.second_note.play()
-   
-
-class Relative_Pitch_Trainer:
-    def __init__(self, num_questions, level, direction, cur_question=0, intervals=[], notes=[]):
-        self._num_questions = num_questions
-        self._level = level
-        self._direction = direction
-        self._cur_question = cur_question
-        self._intervals = intervals
-        self._notes = notes
-    
-    @property
-    def num_questions(self):
-        return self._num_questions
-    
-    @num_questions.setter
-    def num_questions(self, value):
-        if value < 1 or value > 100:
-            raise ValueError("Number of questions must be between 1 and 100")
-        self._num_questions = value
-    
-    @property
-    def level(self):
-        return self._level
-    
-    @level.setter
-    def level(self, value):
-        if value < 1 or value > 5:
-            raise ValueError("Level must be between 1 and 5")
-        self._level = value
-    
-    @property
-    def direction(self):
-        return self._direction
-    
-    @direction.setter   
-    def direction(self, value):
-        if value not in ['asc', 'desc', 'both']:
-            raise ValueError("Direction must be either 'asc' or 'desc' or 'both'")
-        self._direction = value
-    
-    @property
-    def cur_question(self):
-        return self._cur_question
-    
-    @cur_question.setter
-    def cur_question(self, value):
-        if value < 0 or value > self.num_questions:
-            raise ValueError("Current question must be between 0 and the number of questions")
-        self._cur_question = value
-    
-    @property
-    def intervals(self):
-        return self._intervals
-    
-    @intervals.setter
-    def intervals(self, value):
-        self._intervals = value
-    
-    @property
-    def notes(self):
-        return self._notes
-    
-    @notes.setter
-    def notes(self, value):
-        self._notes = value
-    
-    def choose_direction(self):
-        if self.direction == 'both':
-            return random.choice(['asc', 'desc'])
-        return self.direction
-    
-    def get_choices(self):
-        choices = []
-
-        for interval in self.intervals:
-            if interval['level'] <= self.level:
-                choices.append(interval['interval'])
+        # Screen dimensions
+        self.width = 1200
+        self.hight = 700
         
-        return choices
-    
-    def choose_interval(self):
-        sub_intervals = Interval.get_level_intervals(self.intervals, self.level)
-        return random.choice(sub_intervals)['interval']
-    
-    def generate_question(self):
-        if self.cur_question > self.num_questions:
-            return None
+        try:
+            self.background_image = pygame.image.load('background.jpg')
+        except pygame.error:
+            self.background_image = None
         
-        if self.choose_direction() == 'asc':
-            inter = Interval.generate_asc_interval(self.notes, self.choose_interval(), self.intervals)
-        inter = Interval.generate_desc_interval(self.notes, self.choose_interval(), self.intervals)
+        self.overlay_color = (237, 242, 247, 200)
+        self.screen = pygame.display.set_mode((self.width, self.hight), pygame.RESIZABLE)
+        pygame.display.set_caption("Es Relative Pitch Trainer")
+        info = pygame.display.Info()
+        self.width = info.current_w
+        self.hight = info.current_h
+        self.background = (237, 242, 247, 255)
+        self.color = (45, 55, 72)
+        self.choices = (66, 153, 255, 255)
+        self.blue = (49, 130, 206, 255)
+        self.transparent = (0, 0, 0, 0)
+
+        # fonts
+        self.font_large = pygame.font.Font(None, 48)
+        self.font_medium = pygame.font.Font(None, 36)
+
+        # Game Data
+        self.notes = Note.get_notes()
+        self.intervals = Interval.get_intervals()
+        self.level = 1
+        self.direction = 'asc'
+        self.score = 0
+        self.game = None
+        self.num_questions = 10
+        self.active_choice = ''
+        self.active_qustion = {}
+
+        # UI state
+        self.state = 'menu'
+        self.play = False
+        self.first_render = True
+        self.cur_question = 1
+        self.input_active = False
+        self.input_text = '10'
+        # UI components
+        self.menu = {}
+        self.choices_btns = []
+
+
+    def draw_background(self):
+        if self.background_image:
+            scaled_bg = pygame.transform.scale(self.background_image, (self.width, self.hight))
+            self.screen.blit(scaled_bg, (0, 0))
+        else:
+            self.screen.fill(self.background)
         
+        # Create a semi-transparent overlay
+        overlay = pygame.Surface((self.width, self.hight), pygame.SRCALPHA)
+        overlay.fill(self.overlay_color)
+        self.screen.blit(overlay, (0, 0))
 
-        return Question(self.get_choices(), inter.name, inter)
+    def draw_button(self, x, y, width, height, text, active=False, bg_color=(255, 255, 255, 0)):
+        text_surface = self.font_medium.render(text, True, self.color)
+        text_rect = text_surface.get_rect()
+        btn_width = width
+        text_rect.center = (btn_width / 2, height / 2)
+        button_surface = pygame.Surface((btn_width, height), pygame.SRCALPHA)
+        pygame.draw.rect(button_surface, bg_color, (0, 0, btn_width, height), border_radius=5)
+        button_surface.blit(text_surface, text_rect)
+        self.screen.blit(button_surface, (x, y))
+        return pygame.Rect(x, y, btn_width, height)
     
-    def train(self):   
-        question = self.generate_question()
-        print(question)
-        question.play_interval()
-        self.cur_question += 1
-   
+    def draw_game_screen(self):
+        self.draw_background()
 
+        # title
+        title = self.font_large.render("Es Relative Pitch Trainer", True, self.color)
+        self.screen.blit(title, (self.width / 2 - title.get_width() / 2, 50)) 
 
-@app.route('/')
-def main():
-    notes = Note.get_notes()
-    intervals = Interval.get_intervals()
+        # score
+        score = self.font_medium.render(f"Score: {self.score}", True, self.color)
+        self.screen.blit(score, (20, 20))
 
-    game = Relative_Pitch_Trainer(10, 1, 'both', 0, intervals, notes)
-    game.train()
-    return render_template('index.html')
+        # render questions
+        for i, choice in enumerate(self.active_question.choices):
+            bg_color = self.blue if self.active_choice == choice else self.choices
+            choice_btn = self.draw_button(self.width / 2 - 150, 200 + (i * 70), 300, 50, choice, self.active_choice == choice, bg_color)
+            self.choices_btns.append(choice_btn)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+        return  []
+    
+    def draw_menu_screen(self):
+        self.draw_background()
+
+        #title
+        title = self.font_large.render("Es Relative Pitch Trainer Setup", True, self.color)
+        self.screen.blit(title, (self.width / 2 - title.get_width() / 2, 50))
+
+        # Selected level 
+        level_text = self.font_medium.render("Select Level (1-5): ", True, self.color)
+        self.screen.blit(level_text, (self.width / 2 - level_text.get_width() / 2, 100))
+        selected_level = self.font_medium.render(f"{self.level}", True, self.color)
+        self.screen.blit(selected_level, (self.width / 2 - level_text.get_width() / 2 + 100, 150))
+
+        # Level controls
+        decrease = self.draw_button(self.width / 2 - 150, 135, 20, 50, '<', self.level > 1, self.transparent)
+        increase = self.draw_button(self.width / 2 + 100, 135, 20, 50, '>', self.level < 5, self.transparent)
+
+        # Direction
+        asc_bg = self.blue if self.direction == 'asc' else self.choices
+        asc_btn = self.draw_button(self.width / 2 - 200, 300, 140, 50, 'Ascending', self.direction == 'asc', asc_bg)
+        desc_bg = self.blue if self.direction == 'desc' else self.choices
+        desc_btn = self.draw_button(self.width / 2 - 50, 300, 140, 50, 'Descending', self.direction == 'desc', desc_bg)
+        both_bg = self.blue if self.direction == 'both' else self.choices
+        both_btn = self.draw_button(self.width / 2 + 115, 300, 140, 50, 'Both', self.direction == 'both', both_bg)
+
+        # num questions
+        num_questions_text = self.font_medium.render("Number of Questions: ", True, self.color)
+        self.screen.blit(num_questions_text, (self.width / 2 - num_questions_text.get_width() / 2, 400))
+        input_box = pygame.Rect(self.width / 2 + 150, 390, 100, 50)
+        input_color = self.blue if self.input_active else self.choices
+        pygame.draw.rect(self.screen, input_color, input_box, border_radius=5)
+        input_surface = self.font_medium.render(self.input_text, True, self.color)
+        input_rect = input_surface.get_rect(center=input_box.center)
+        self.screen.blit(input_surface, input_rect)
+        self.menu['input_box'] = input_box
+
+        # Start button
+        start_btn = self.draw_button(self.width / 2 - 50, 500, 140, 50, 'Start', False, self.choices)
+
+        # assign components to menu dict
+        self.menu['level'] = (decrease, increase)
+        self.menu['direction'] = (asc_btn, desc_btn, both_btn)
+        self.menu['start'] = start_btn
+
+    def draw_result_screen(self):
+        self.draw_background()
+
+        # title
+        if self.cur_question < self.game.num_questions:
+            text = 'Correct!' if self.active_question.check_answer(self.active_choice) else 'Incorrect!'
+            title = self.font_large.render(text, True, self.color)
+            current_interval = f"{self.active_question.interval.first_note.note} to {self.active_question.interval.second_note.note} is {self.active_question.interval.name}"
+            current_interval_text = self.font_medium.render(current_interval, True, self.color)
+            self.screen.blit(title, (self.width / 2 - title.get_width() / 2, 50))
+            self.screen.blit(current_interval_text, (self.width / 2 - current_interval_text.get_width() / 2, 150))
+            question_track = self.font_medium.render(f"Question {self.cur_question}/{self.game.num_questions}", True, self.color)
+            self.screen.blit(question_track, (self.width / 2 - question_track.get_width() / 2, 250))
+            next_btn = self.draw_button(self.width / 2 - 150, 300, 300, 50, 'Next', False, self.choices)
+            self.menu['next'] = next_btn
+        else:
+            final_score = self.font_large.render(f"Final Score: {self.score}/{self.game.num_questions}", True, self.color)
+            self.screen.blit(final_score, (self.width / 2 - final_score.get_width() / 2, 50))
+            self.menu['play_again'] = self.draw_button(self.width / 2 - 150, 300, 300, 50, 'Play Again', False, self.choices)
+
+    def run(self):
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_f:
+                        if self.screen.get_flags() & pygame.RESIZABLE:
+                            self.screen = pygame.display.set_mode((1200, 700))
+                            self.width = 1200
+                            self.hight = 700
+                        else:
+                            info = pygame.display.Info()
+                            self.width = info.current_w
+                            self.hight = info.current_h - 40
+                            self.screen = pygame.display.set_mode((self.width, self.hight), pygame.RESIZABLE)
+                if event.type == pygame.VIDEORESIZE:
+                    self.width, self.hight = event.w, event.h
+                    self.screen = pygame.display.set_mode((self.width, self.hight), pygame.RESIZABLE)
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if self.state == 'menu':
+                        if self.menu['level'][0].collidepoint(mouse_pos):
+                            self.level = max(1, self.level - 1)
+                        elif self.menu['level'][1].collidepoint(mouse_pos):
+                            self.level = min(5, self.level + 1)
+                        elif self.menu['direction'][0].collidepoint(mouse_pos):
+                            self.direction = 'asc'
+                        elif self.menu['direction'][1].collidepoint(mouse_pos):
+                            self.direction = 'desc'
+                        elif self.menu['direction'][2].collidepoint(mouse_pos):
+                            self.direction = 'both'
+                        elif self.menu['input_box'].collidepoint(mouse_pos):
+                            self.input_active = True
+                            self.input_text = ''
+                        elif self.menu['start'].collidepoint(mouse_pos):
+                            self.state = 'game'
+                            self.game = Relative_Pitch_Trainer(self.num_questions, self.level, self.direction, 0, self.intervals, self.notes)
+                            self.active_question = self.game.generate_question()
+                            self.play = True
+                    elif self.state == 'game':
+                        for i, choice in enumerate(self.choices_btns):
+                            if choice.collidepoint(mouse_pos):
+                                self.active_choice = self.active_question.choices[i]
+                                if self.active_question.check_answer(self.active_question.choices[i]):
+                                    self.score += 1
+                                self.state = 'result'
+                                break
+                    elif self.state == 'result':
+                        if self.cur_question < self.game.num_questions:
+                            if self.menu['next'].collidepoint(mouse_pos):
+                                self.active_question = self.game.generate_question()
+                                self.cur_question += 1
+                                self.active_choice = ''
+                                self.state = 'game'
+                                self.first_render = True
+                                self.play = True
+                                self.choices_btns = []
+                        else:
+                            if self.menu['play_again'].collidepoint(mouse_pos):
+                                self.state = 'menu'
+                                self.score = 0
+                                self.cur_question = 1
+                                self.active_choice = ''
+                                self.choices_btns = []
+                                self.game = None
+                                self.active_question = {}
+                                self.play = False
+                                self.first_render = True
+                                self.menu = {}
+                
+                if event.type == pygame.KEYDOWN and self.input_active:
+                    if event.key == pygame.K_RETURN:
+                        self.input_active = False
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.input_text = self.input_text[:-1]
+                    else:
+                        if event.unicode.isnumeric() and len(self.input_text) < 4:
+                            self.input_text += event.unicode
+                    
+                    try:
+                        num = int(self.input_text)
+                        self.num_questions = max(1, min(num, 100))
+                        self.input_text = str(self.num_questions)
+                    except ValueError:
+                        self.input_text = '10'
+                        self.num_questions = 10
+
+            if self.state == 'menu':
+                self.draw_menu_screen()
+            elif self.state == 'result':
+                self.draw_result_screen()
+            else:
+                self.draw_game_screen()
+                if self.play and not self.first_render:
+                    self.active_question.play_interval()
+                    self.play = False
+                self.first_render = False
+
+            pygame.display.flip()
+        pygame.quit()
+
+if __name__ == "__main__":
+    game = GameUI()
+    game.run()
