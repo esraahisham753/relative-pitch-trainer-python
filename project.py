@@ -1,5 +1,6 @@
 import pygame
 from music import Note, Interval, Relative_Pitch_Trainer
+import csv
 
 class GameUI:
     def __init__(self):
@@ -262,6 +263,36 @@ class GameUI:
             pygame.display.flip()
         pygame.quit()
 
-if __name__ == "__main__":
+def main():
     game = GameUI()
     game.run()
+
+
+def get_notes():
+        with open('musical-notes.csv', 'r') as f:
+            reader = csv.DictReader(f)
+            notes = []
+
+            for row in reader:
+                note = Note(row['Note'] + row['Octave'], int(row['MIDI']))
+                notes.append(note)
+            
+            return notes
+
+def get_intervals():
+        intervals = []
+
+        with open('intervals.csv', 'r') as f:
+            reader = csv.DictReader(f)
+            
+            for row in reader:
+                intervals.append({'interval': row['Interval'], 'semitones': int(row['Semitones']), 'level': int(row['Level'])})
+        return intervals
+
+def map_inter_to_semitones(intervals, interval):
+        for inter in intervals:
+            if inter['interval'] == interval:
+                return inter['semitones']
+
+if __name__ == "__main__":
+    main()
