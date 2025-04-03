@@ -52,3 +52,18 @@ python project.py
 6. The result screen will show if your answer is correct or not along with the tracking of your current progress in the session (current question number)
 7. When there's no more question you will see your final score and a button to start a new training session.
 
+## Code Structure
+
+```python
+project/
+|
+|- project.py # Contains the pygame UI and controls drawing functions
+|- music.py # Contains the music build blocks as encapsulated classes
+|- test_project.py # custom functions tests
+|- requirements.txt # project dependencies
+|- intervals.csv # contains intervals info
+|- musical-notes.csv # contains piano notes info
+|- background.jpg # The UI background
+
+
+
